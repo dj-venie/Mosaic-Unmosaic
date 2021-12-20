@@ -7,7 +7,63 @@ import logging
 
 import pandas as pd
 
-class ImgProcessor:
+vid_ext_list = []
+img_ext_list = []
+
+class RW:
+    def __init__(self, input_path, output_path):
+        self.ext = os.path.splitext(input_path)[-1].lower()
+        self.input_path = input_path
+        self.output_path = output_path
+        self.current_fcnt = 0
+
+        if self.ext in img_ext_list:
+            self.read = self.read_img
+            self.write = self.write_img
+            self.out = None
+            self.total_fcnt = 1
+        elif self.ext in vid_ext_list:
+            self.cap = cv2.VideoCapture(self.input_path)
+            self.read = self.read_vid
+            self.out = set_saved_video(self.cap, self.output_path)
+            self.write = self.write_vid
+            self.total_fcnt = int(self.cap.get(cv2.CAP_RPOP_FRAME_COUNT))
+        else:
+            pass
+
+    def read_vid(self):
+        self.current_fcnt += 1
+        ret,img = self.cap.read()
+        if ret is False:
+            return -1
+        return img
+
+    def read_img(self):
+        self.current_fcnt += 1
+        img = cv2.imread(self.input_path)
+        if img is None:
+            return -1
+        return img
+
+    def write_img(self,img):
+        cv2.imwrite(self.output_path, img)
+
+    def write_vid(self,img):
+        self.out.write(img)
+
+    def close(self):
+        if self.out:
+            self.out.release()
+            self.cap.release()
+
+    def __del__(self):
+        if self.out:
+            self.out.release()
+            self.cap.release()
+
+
+
+class ImgWorker:
     def __init__(self, mosaic="resize", draw_boxes=False, put_texts=False, todo_list = ['face','plate']):
         if mosaic=='color':
             self.mosaic = self.mosaic_color
@@ -23,7 +79,7 @@ class ImgProcessor:
         self.todo_list = todo_list
         self.color_dict = {name:(random.randint(0,255),random.randint(0,255),random.randint(0,255)) for name in todo_list}
         
-    def process(self, img, detections):
+    def do(self, img, detections):
         classes, scores, bboxes = detections
         for c, s, bbox in zip(classes,scores,bboxes):
             x,y,w,h = bbox
@@ -95,6 +151,7 @@ class Annotator:
         for c,s,bbox in zip(classes,scores,bboxes):
             obj_dict = {'class':c, 'boxcorners':bbox, 'id':box_id}
             now_annos['labels'].append(obj_dict)
+            box_id += 1
 
         self.anno_dict['Annotation'][frame_cnt] = now_annos
 
@@ -105,3 +162,9 @@ class Annotator:
 
 
     
+def set_saved_video(cap, output_path):
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = round(cap.get(cv2.CAP_PROP_FPS))
+
+    return cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'avc1'),fps,(width,height))
