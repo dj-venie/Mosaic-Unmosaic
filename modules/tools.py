@@ -43,6 +43,7 @@ class RW:
         img = cv2.imread(self.input_path)
         if img is None:
             return -1
+        self.input_path = ""
         return img
 
     def write_img(self,img):
