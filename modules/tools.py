@@ -6,7 +6,7 @@ import datetime
 import logging
 
 import pandas as pd
-
+from nltk.metrics.distance import edit_distance
 vid_ext_list = []
 img_ext_list = []
 
@@ -169,3 +169,132 @@ def set_saved_video(cap, output_path):
     fps = round(cap.get(cv2.CAP_PROP_FPS))
 
     return cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'avc1'),fps,(width,height))
+
+
+def frame_select(input_path, anno_path, target):
+    def select(selected_frame, candidate_list):
+        # select function
+        if len(selected_frame)==2:
+            if candidate_list:
+                n1 = int(selected_frame[0][0])
+                n2 = int(selected_frame[1][0])
+                new = max(candidate_list, key=lambda x: abs(n1-int(x[0]))+abs(n2-int(x[0])))
+                selected_frame.append(new)
+        elif len(selected_frame)==1:
+            if candidate_list:
+                n1 = int(selected_frame[0][0])
+                new = max(candidate_list, key=lambda x:abs(n1-int(x[0])))
+                selected_frame.append(new)
+                candidate_list.remove(new)
+                n2 = int(new[0])
+                if candidate_list:
+                    new = max(candidate_list, key=lambda x:abs(n1-int(x[0]))+abs(n2-int(x[0])))
+                    selected_frame.append(new)
+        elif len(selected_frame)==0:
+            if len(candidate_list)>=3:
+                selected_frame.append(candidate_list[0])
+                selected_frame.append(candidate_list[len(candidate_list)//2])
+                selected_frame.append(candidate_list[-1])
+            else:
+                selected_frame += candidate_list
+
+        return selected_frame
+
+    name = input_path.split("/")[-1]
+    gif_flag = 0
+    if name.lower().endswith("gif"):
+        input_path = gif2mp4(input_path)
+        gif_flag = 1
+    
+    cap = cv2.VideoCapture(input_path)
+    
+    with open(anno_path, "r") as f:
+        anno_dict = json.load(f)
+    
+    matched_list = []
+    similar_list = []
+    not_matched_list = []
+    for fcnt, frame_anno in anno_dict['Annotation'].items():
+        fcnt_cache = []
+        matched = 0
+        similar = 0
+        for label in frame_anno['labels']:
+            if 'plate_num' in label:
+                fcnt_cache.append(label['plate_num'])
+                if label['plate_num']==target:
+                    matched = 1
+                elif label['plate_num'][-4:]==target[-4:]:
+                    similar = 1
+                elif ned(label['plate_num'],target)>0.7:
+                    similar = 1
+        if matched:
+            matched_list.append([fcnt,fcnt_cache])
+        elif similar:
+            similar_list.append([fcnt,fcnt_cache])
+        elif fcnt_cache:
+            not_matched_list.append([fcnt,fcnt_cache])
+
+    um_cand = matched_list + similar_list
+
+    selected_frame = []
+    # step 1 select from matched
+    if len(matched_list)>=3:
+        selected_frame.append(matched_list[0])
+        selected_frame.append(matched_list[len(matched_list)//2])
+        selected_frame.append(matched_list[-1])
+    else:
+        selected_frame += matched_list
+
+    # step 2 select from similar
+    selected_frame = select(selected_frame, similar_list)
+
+    # step 3 select from other frame
+    selected_frame = select(selected_frame, not_matched_list)
+
+    # step 4 select from not detected frame
+    total_cnt = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if total_cnt > 0:
+        last_list = []
+        for i in range(total_cnt):
+            if i not in [int(j[0]) for j in selected_frame]:
+                last_list.append([i,[]])
+        selected_frame = select(selected_frame, last_list)
+
+    selected_frame = sorted(selected_frame, key=lambda x:int(x[0]))
+
+    for i,selection in enumerate(selected_frame):
+        cap.set(cv2.CAP_PROP_POS_FRAMES,int(selection[0]))
+        ret,img = cap.read()
+        if ret is False:
+            print("cap error")
+            return False
+        else:
+            selected_frame[i][0] = img
+
+    if gif_flag:
+        os.remove(input_path)
+    return selected_frame
+
+
+
+
+
+
+    
+
+def gif2mp4(path,out_path='./temp_gif.mp4'):
+    cap = cv2.VideoCapture(path)
+    vid = set_saved_video(cap, out_path)
+    while 1:
+        ret, frame = cap.read()
+        if ret is False:
+            break
+        vid.write(frame)
+    cap.release()
+    vid.release()
+
+    return out_path
+
+
+def ned(pred,gt):
+    return 1 - edit_distance(pred,gt) / max(len(gt), len(pred))
