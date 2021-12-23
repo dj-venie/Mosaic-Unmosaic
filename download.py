@@ -11,7 +11,7 @@ from absl.flags import FLAGS
 from modules.connector import hdfsConnection, dbConnection
 
 flags.DEFINE_string("FROM","/user/input/","hadoop download directory path")
-flags.DEFINE_string("HOME_PATH","/data/","loacl directory path to download")
+flags.DEFINE_string("HOME_PATH","/data/","local directory path to download")
 flags.DEFINE_string("todo","","dir name todo")
 
 def main(_argv):

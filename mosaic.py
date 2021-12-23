@@ -12,7 +12,7 @@ from absl.flags import FLAGS
 from imutils.video import fps
 
 from modules.detector import Yolo
-from modules.tools import ImgWorker, Annotator, RW
+from modules.tools import ImgWorker, Annotator, RW, img_ext_list, vid_ext_list
 from modules.cryptor import EncWorker
 
 flags.DEFINE_string("input", "./data/media/mc_input.txt", "path to input")
@@ -22,8 +22,6 @@ flags.DEFINE_integer("gpu",0,"gpu to use")
 flags.DEFINE_boolean("ocr", False, "do ocr")
 
 TOTAL_GPU_NUM = int(cv2.cuda.getCudaEnabledDeviceCount())
-img_ext_list = []
-vid_ext_list = []
 
 def pre_process(io, frame_q, plate_q, face_q):
     try:
@@ -178,7 +176,7 @@ def main(_argv):
             ext = ext.lower()
             if ext in img_ext_list:
                 output_path = os.path.join(output_dir, real_name+"_mosaic.jpg")
-            elif ext in img_ext_list:
+            elif ext in vid_ext_list:
                 output_path = os.path.join(output_dir, real_name+"_mosaic.mp4")
             else:
                 print(f"unspported extension ({file_name})")
