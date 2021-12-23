@@ -46,7 +46,8 @@ def main(_argv):
                     enc_dict = json.load(ef)
 
             # setting tools
-            vid_name,vid_ext = os.path.splitext(os.path.split(vid_path)[-1])
+            vid_ext = os.path.splitext(os.path.split(vid_path)[-1])[-1]
+            vid_name = os.path.splitext(anno_dict['FileInfo']['Name'])[0]
             io = RW(vid_path, f"{output_dir}/{vid_name}_unmosaic{vid_ext}")
             dec = DecWorker(FLAGS.key)
             dec.select(anno_dict)

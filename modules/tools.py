@@ -3,13 +3,14 @@ import cv2
 import json
 import random
 import datetime
+import shutil
 import logging
 
 import pandas as pd
 from nltk.metrics.distance import edit_distance
-vid_ext_list = []
-img_ext_list = []
 
+vid_ext_list = ['.gif','.mov','.mp4','.avi']
+img_ext_list = ['.jpg','.png','.bmp','.jpeg']
 class RW:
     def __init__(self, input_path, output_path):
         self.ext = os.path.splitext(input_path)[-1].lower()
@@ -298,3 +299,63 @@ def gif2mp4(path,out_path='./temp_gif.mp4'):
 
 def ned(pred,gt):
     return 1 - edit_distance(pred,gt) / max(len(gt), len(pred))
+
+def todo_add(todo, num, type='days'):
+    # ex) todo = 2021122500
+    todo_ts = datetime.datetime.strptime(todo, "%Y%m%d%H")
+    if type=='months':
+        cal = datetime.timedelta(months=num)
+    elif type=='days':
+        cal = datetime.timedelta(days=num)
+    elif type=='hours':
+        cal = datetime.timedelta(hours=num)
+    elif type=='minutes':
+        cal = datetime.timedelta(minutes=num)
+    elif type=='seconds':
+        cal = datetime.timedelta(seconds=num)
+    else:
+        return
+
+    new_todo_ts = todo_ts + cal
+    new_todo = datetime.datetime.strftime(new_todo_ts, "%Y%m%d%H")
+    return new_todo
+
+def remove_todo(home_path, todo):
+    # remove download
+    download_path = f"{home_path}/download/{todo}/"
+    if os.path.isdir(download_path):
+        original_list = os.listdir(download_path)
+        shutil.rmtree(download_path)
+    else:
+        print(f"{download_path} not exist")
+    
+    # remove hadoop
+    hadoop_path = f"{home_path}/hadoop/{todo}/"
+    if os.path.isdir(hadoop_path):
+        shutil.rmtree(hadoop_path)
+    else:
+        print(f"{hadoop_path} not exist")
+
+    # remove nas/cvlcpt
+    for file_name in original_list:
+        name, ext = os.path.splitext(file_name)
+        if ext in vid_ext_list:
+            path = f"{home_path}/nas/cvlcpt/{todo}/{name}_unmosaic.mp4"
+            if os.path.isfile(path):
+                os.remove(path)
+        elif ext in img_ext_list:
+            path = f"{home_path}/nas/cvlcpt/{todo}/{name}_unmosaic.jpg"
+            if os.path.isfile(path):
+                os.remove(path)
+        else:
+            pass
+    
+    # remove nas/recg
+    for file_name in original_list:
+        name, ext = os.path.splitext(file_name)
+        for i in range(3):
+            path = f"{home_path}/nas/recg/{name}_{i}.jpg"
+            if os.path.isfile(path):
+                os.remove(path)
+
+    print(f"remove done {todo}")
