@@ -248,6 +248,11 @@ def main(_argv):
     u_node.next_todo_list = s_node.todo_list
 
     d_node.todo_list.append(start_todo)
+    report_time = datetime.datetime.now()
+    with open("./status.txt","a") as f:
+        f.write(f"[start] {report_time}\n")
+        f.write(f"{start_todo} ~ {end_todo}\n")
+        f.write(f"download : {d_node.start_todo}\n\n")
 
     while 1:
         d_status = d_node.check_status()
@@ -272,9 +277,14 @@ def main(_argv):
                 break
         
         # show status 
-
-
-        
+        if (datetime.datetime.now() - report_time).seconds > 3600:
+            report_time = datetime.datetime.now()
+            with open("./status.txt","a") as f:
+                f.write(f"[status] {report_time}\n")
+                f.write(f"Download : {d_node.todo} ({d_status})\n")
+                f.write(f"Mosaic : {m_node.todo} ({m_status})\n")
+                f.write(f"UnMosaic : {u_node.todo} ({u_status})\n")
+                f.write(f"Save : {s_node.todo} ({s_status})\n\n")
                 
         
 
