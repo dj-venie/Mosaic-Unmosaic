@@ -49,7 +49,9 @@ def main(_argv):
             vid_ext = os.path.splitext(os.path.split(vid_path)[-1])[-1]
             vid_name = os.path.splitext(anno_dict['FileInfo']['Name'])[0]
             io = RW(vid_path, f"{output_dir}/{vid_name}_unmosaic{vid_ext}")
-            dec = DecWorker(FLAGS.key)
+            if target == -1:
+                target = ""
+            dec = DecWorker(FLAGS.key, target=target)
             dec.select(anno_dict)
             fcnt = 0
             while 1:
