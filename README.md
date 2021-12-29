@@ -60,4 +60,7 @@
 ------------
 ## 3. Requirements
 ### 3.1 Test Environment
+- Linux (Ubuntu, RedHat)
+- Cuda(10.1), Cudnn(7.6.5)
+- OpenCV > 4.0
 ### 3.2 Python Packages
