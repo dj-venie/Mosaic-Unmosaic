@@ -1,10 +1,10 @@
 # Mosaic-Unmosaic
 
 ## 0. Summary
-- Program for mosaic and unmosaic
-- Result contains Korean license Plate recognition and object bounding-box location
-- Yolov4 model used for object detection (face, korea license plate)
-- Clova TRBA model used for plate ocr
+- 딥러닝기반 실시간 대용량 영상처리 모듈입니다.
+- 속도 향상을 위해 GPU연산과 동시 프로그래밍(concurrent programming)을 활용합니다.
+- Yolov4 모델을 활용하여 개인정보(얼굴, 번호판)을 탐지합니다.
+- Clova TRBA 모델을 활용하여 번호판 문자인식합니다.
 - Pipeline
   - Step1 : Download from hadoop(hdfs) server, get metadata from db(cubrid)
   - Step2 : Do inference on downloaded data and mosaic about personal data 
@@ -15,12 +15,12 @@
 ## 1. Fast start
 - python mosaic.py --input input_paths.txt --output output_dir --key any_key_you_want
 - python unmosaic.py --input vid_anno_enc_target.txt --output output_dir --key same_key_you_above
->Actually some codes are requires servers. Just use it as reference
+> mosaic.py와 unmosaic.py를 제외한 코드들은 서버들이 세팅되어야 합니다. 참고로 사용하세요.
 -----------
 ## 2. Details
 ### 2.1 mosaic.py
-- It contains object detection, ocr, encryption and img process.
-- In order to use it, we need to create a text file with the path.
+- 비식별화, 개인정보 암복호화, 번호판 인식을 포함하고 있습니다.
+- 입력은 경로가 포함된 텍스트 파일입니다.
 -  mosaic_input.txt :
    ```
    path/to/input_video1.mp4
@@ -51,16 +51,20 @@
 - 큐를 활용하여 테스크를 전달하고 네개의 프로세스를 병렬로 실행하여 전체 프로세스 속도를 높였습니다.
 - 정해진 포멧의 디렉토리에 대해서 작동하며 7일 간격으로 저장된 데이터를 삭제합니다. 
 #### 2.3.2 download.py
-- 각 시간대 별로 저장되는 디렉토리들을 다운로드합니다.
+- 지정한 디렉토리를 다운로드합니다.
 - FROM에 해당하는 하둡 서버의 디렉토리가 설정되어야 하고 db(cubrid 서버)에 형식에 맞는 테이블도 존재해야합니다.
-- modules/connector의 하둡 서버와 db 서버에 맞는 정보를 적습니다. 
+- modules/connector의 하둡 서버와 db 서버에 맞는 정보를 적습니다.
 #### 2.3.3 save.py
 - 비정형 데이터 에서 분석결과를 기반으로 찾고자하는 차량번호가 존재하는지 확인하고 해당 프레임들(3개) 혹은 이미지를 저장합니다.
 - 일치여부, 유사여부, 번호판 검출여부(일치여부x)를 순서로 프레임을 추출하고 세가지 이미지 모두 번호판이 검출되지 않을수도 있습니다.
 ------------
 ## 3. Requirements
 ### 3.1 Test Environment
-- Linux (Ubuntu, RedHat)
+- Linux (Ubuntu 18.04, RedHat 7.9)
 - Cuda(10.1), Cudnn(7.6.5)
+- python 3.8
 - OpenCV > 4.0
 ### 3.2 Python Packages
+```
+pip install -r requirements.txt
+```
